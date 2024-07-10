@@ -1,6 +1,9 @@
 # Uncomment this to pass the first stage
 import socket
+import re
 
+OK_RESPONSE = b"HTTP/1.1 200 OK\r\n\r\n"
+NOTFOUND_RESPONSE = b"HTTP/1.1 404 Not Found\r\n\r\n"
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -9,14 +12,15 @@ def main():
     # Uncomment this to pass the first stage
     
     server_socket = socket.create_server(("localhost", 4221), reuse_port=True)
-    conn, addr = server_socket.accept()
-    data = conn.recv(1024)
-    req = data.split(b"\r\n")
-    req_line = req[0]
-    route = req_line.split()[1]
+    conn, _ = server_socket.accept()
+    request = conn.recv(1024).decode() # decode bytes to string
+    url = re.search("GET (.*) HTTP", request).group(1) # get first match of this regex search to get the req url
 
-    if route == b"/":
+    if url == "/":
         conn.sendall(b"HTTP/1.1 200 OK\r\n\r\n")
+    elif url.startswith("/echo/"):
+        echo_response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(url[6:])}\r\n\r\n{url[6:]}".encode()
+        conn.sendall(echo_response)
     else:
         conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
 
