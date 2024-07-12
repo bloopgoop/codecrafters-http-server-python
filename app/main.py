@@ -21,6 +21,10 @@ def main():
     elif url.startswith("/echo/"):
         echo_response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(url[6:])}\r\n\r\n{url[6:]}".encode()
         conn.sendall(echo_response)
+    elif url.startswith("/user-agent"):
+        user_agent = re.search("User-Agent: (.*)\r\n", request).group(1)
+        user_agent_response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}".encode()
+        conn.sendall(user_agent_response)
     else:
         conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
 
