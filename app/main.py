@@ -2,7 +2,7 @@
 import socket
 import re
 import threading
-import os
+import sys
 
 
 def request_handler(conn: socket.socket):
@@ -20,13 +20,16 @@ def request_handler(conn: socket.socket):
         user_agent_response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}".encode()
         conn.sendall(user_agent_response)
     elif url.startswith("/files/"):
+        directory = sys.argv[2]
         file_name = url[7:]
-        if os.path.exists(file_name):
-            with open(file_name, encoding="utf-8") as f:
+        print(directory)
+        print(file_name)
+        try:
+            with open(f"/{directory}/{file_name}", encoding="utf-8") as f:
                 content = f.read()
                 file_response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
                 conn.sendall(file_response)
-        else:
+        except FileNotFoundError:
             conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
     else:
         conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
