@@ -8,7 +8,9 @@ import sys
 def request_handler(conn: socket.socket):
     """ Function that handles client request """
     request = conn.recv(1024).decode() # decode bytes to string
-    url = re.search("GET (.*) HTTP", request).group(1) # get first match of this regex search to get the req url
+    search = re.search("(GET|POST) (.*) HTTP", request)
+    if search:
+        method, url = search.group(1), search.group(2)
 
     if url == "/":
         conn.sendall(b"HTTP/1.1 200 OK\r\n\r\n")
@@ -20,17 +22,30 @@ def request_handler(conn: socket.socket):
         user_agent_response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}".encode()
         conn.sendall(user_agent_response)
     elif url.startswith("/files/"):
-        directory = sys.argv[2]
-        file_name = url[7:]
-        print(directory)
-        print(file_name)
-        try:
-            with open(f"/{directory}/{file_name}", encoding="utf-8") as f:
-                content = f.read()
-                file_response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
-                conn.sendall(file_response)
-        except FileNotFoundError:
-            conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
+        if method == "GET":
+            directory = sys.argv[2]
+            file_name = url[7:]
+            print(directory)
+            print(file_name)
+            try:
+                with open(f"/{directory}/{file_name}", encoding="utf-8") as f:
+                    content = f.read()
+                    file_response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n{content}".encode()
+                    conn.sendall(file_response)
+            except FileNotFoundError:
+                conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
+
+        if method == "POST":
+            directory = sys.argv[2]
+            file_name = url[7:]
+            body = request.split("\r\n")[-1]
+            print(directory)
+            print(file_name)
+            print(body)
+            with open(f"/{directory}/{file_name}", encoding="utf-8", mode="w") as f:
+                f.write(body)
+                created_response = f"HTTP/1.1 201 Created\r\n\r\n".encode()
+                conn.sendall(created_response)
     else:
         conn.sendall(b"HTTP/1.1 404 Not Found\r\n\r\n")
 
